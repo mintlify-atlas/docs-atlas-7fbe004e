@@ -1,0 +1,177 @@
+---
+title: "Marimba"
+description: "A browser-based digital marimba with seven notes synthesized via the Web Audio API. Play with mouse clicks or keyboard shortcuts."
+---
+
+The Marimba experience turns the seven sound seeds into a playable instrument. Each seed image becomes one bar of a seven-note marimba (Do through Si). Clicking a bar — or pressing the corresponding keyboard key — produces a woody, decaying tone synthesized entirely in the browser with the Web Audio API. No audio files are loaded; every sound is generated on demand.
+
+Both Marimba and [Sound seeds](/experiences/semillas-sonoras) are rendered on the same page: `/sesiones/semillas` (Chapter 01).
+
+<CardGroup cols={2}>
+  <Card title="Standalone URL" icon="link">
+    `/sesiones/semillas` — Chapter 01 page, scrolled to the Marimba section below Sound Seeds.
+  </Card>
+  <Card title="Component" icon="code">
+    `components/Marimba.tsx` — client component, uses the Web Audio API only.
+  </Card>
+</CardGroup>
+
+## The seven notes
+
+The marimba has one octave of the C major diatonic scale. Each key has a fixed color drawn from the Quiero Aprender brand palette.
+
+| Key | Note | Frequency | Color |
+| --- | ---- | --------- | ----- |
+| 1 | Do (C4) | 261.63 Hz | `#BFF49F` (green) |
+| 2 | Re (D4) | 293.66 Hz | `#A7E3FF` (sky blue) |
+| 3 | Mi (E4) | 329.63 Hz | `#F2AADC` (rose) |
+| 4 | Fa (F4) | 349.23 Hz | `#C0AAF2` (lavender) |
+| 5 | Sol (G4) | 392.00 Hz | `#FFD580` (amber) |
+| 6 | La (A4) | 440.00 Hz | `#9FE3C0` (teal) |
+| 7 | Si (B4) | 493.88 Hz | `#FFB3B3` (salmon) |
+
+## Playing the marimba
+
+### Click or tap
+
+Click any seed image to strike that bar. On touch devices, a tap works equally well.
+
+### Keyboard shortcuts
+
+The keyboard mapping mirrors the home row of a standard QWERTY keyboard:
+
+| Key | Note |
+| --- | ---- |
+| `A` | Do |
+| `S` | Re |
+| `D` | Mi |
+| `F` | Fa |
+| `J` | Sol |
+| `K` | La |
+| `L` | Si |
+
+The hint `Usa el teclado: A S D F J K L` is displayed below the instrument at all times.
+
+<Note>
+  Like all Web Audio API interactions, the `AudioContext` cannot start until the user has interacted with the page (clicked, tapped, or pressed a key). The context is created lazily on the first strike, so the first note may be delayed by a few milliseconds while the browser initializes the audio graph.
+</Note>
+
+## Audio synthesis
+
+Each note is synthesized with a short signal chain that approximates the percussive, wooden timbre of a real marimba bar:
+
+```typescript
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+const filter = ctx.createBiquadFilter();
+
+// Triangle wave for a soft, hollow fundamental
+osc.type = "triangle";
+osc.frequency.value = k.freq; // e.g. 261.63 for Do
+
+// Low-pass filter sweeps down to simulate resonance decay
+filter.type = "lowpass";
+filter.frequency.setValueAtTime(4200, now);
+filter.frequency.exponentialRampToValueAtTime(1200, now + 0.22);
+
+// Short attack, medium decay — total duration ~600 ms
+gain.gain.setValueAtTime(0.0001, now);
+gain.gain.linearRampToValueAtTime(0.3, now + 0.012);
+gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+
+osc.connect(filter).connect(gain).connect(ctx.destination);
+osc.start(now);
+osc.stop(now + 0.6);
+```
+
+A new oscillator node is created and discarded for every single strike. This is idiomatic Web Audio API usage — nodes are cheap to create and automatically garbage-collected after `stop()`.
+
+### Signal chain
+
+```
+OscillatorNode (triangle) → BiquadFilterNode (lowpass) → GainNode → AudioContext.destination
+```
+
+## Seed images as keys
+
+Marimba fetches the seed manifest from `GET /api/semillas` and uses up to the first seven seeds as the visual faces of the keys. If fewer than seven seeds are available, the remaining keys are rendered as plain white circles.
+
+```typescript
+// Marimba.tsx
+const semillasParaTeclas = useMemo(() => semillas.slice(0, 7), [semillas]);
+```
+
+Each `MarimbaKey` receives the `KeyDef` (note frequency, label, color) and optionally a `Semilla` (image, name). When a seed is assigned, its image is shown with a circular crop and an accessible `aria-label` that includes both the note name and the seed name, e.g. `"Tecla Do, girasol"`.
+
+## Visual feedback
+
+When a key is struck, a brief halo animation (`ping-fast`) expands outward from the image circle and fades out over 600 ms, confirming the hit without any persistent state change. The button also shifts down 2 px via `active:translate-y-[2px]` to simulate a physical press.
+
+```typescript
+// MarimbaKey renders this span with a key tied to a ping counter
+<span
+  key={ping}
+  className="pointer-events-none absolute h-24 w-24 rounded-full border-2 border-black/10"
+  style={{ animation: 'ping-fast 0.6s ease-out 1' }}
+  aria-hidden
+/>
+```
+
+The `ping` state integer increments on every strike, forcing React to remount the span and restart the CSS animation from scratch.
+
+## Customizing the marimba
+
+<AccordionGroup>
+  <Accordion title="Changing a note's frequency">
+    Edit the `KEYS` array at the top of `Marimba.tsx`. Each entry has an `id`, a display `label`, a `freq` in Hz, and a `color`.
+
+    ```typescript
+    // Marimba.tsx
+    const KEYS: KeyDef[] = [
+      { id: "k1", label: "Do", freq: 261.63, color: "#BFF49F" },
+      { id: "k2", label: "Re", freq: 293.66, color: "#A7E3FF" },
+      // ...
+    ];
+    ```
+
+    To transpose the marimba up one octave, multiply every `freq` value by 2.
+  </Accordion>
+  <Accordion title="Changing the key colors">
+    Each `KeyDef` has a `color` hex value. Although the current rendering uses the seed image as the visual face of the key (hiding the color), the color is available in `k.color` if you want to use it as a background tint when no seed is assigned:
+
+    ```typescript
+    // In MarimbaKey — apply color when no seed image is available
+    <span
+      className="h-24 w-24 rounded-full ring-2 ring-black/10 shadow-[0_8px_0_rgba(0,0,0,0.12)]"
+      style={{ backgroundColor: k.color }}
+    />
+    ```
+  </Accordion>
+  <Accordion title="Changing the keyboard mapping">
+    The keyboard shortcut map lives in a `useEffect` inside `Marimba.tsx`:
+
+    ```typescript
+    const map = ['a', 's', 'd', 'f', 'j', 'k', 'l'];
+    ```
+
+    Replace any character in `map` to reassign that key. The index in `map` corresponds to the index in `KEYS`, so `map[0]` triggers `KEYS[0]` (Do).
+  </Accordion>
+  <Accordion title="Adjusting the sound envelope">
+    Three parameters control how the note sounds:
+
+    | Parameter | Current value | Effect |
+    | --- | --- | --- |
+    | `linearRampToValueAtTime(0.3, now + 0.012)` | Peak gain `0.3`, attack `12 ms` | Lower the peak for a quieter instrument; increase the time for a softer attack. |
+    | `exponentialRampToValueAtTime(0.0001, now + 0.55)` | Decay to `0.0001` over `550 ms` | Extend `0.55` to `1.5` for a longer sustain. |
+    | `osc.stop(now + 0.6)` | Note cut at `600 ms` | Must be ≥ the decay end time or you will hear an audible click. |
+  </Accordion>
+  <Accordion title="Adding more than seven notes">
+    The marimba is hard-coded to seven keys matching the seven diatonic scale degrees. To add more keys, append entries to `KEYS` and extend the keyboard `map` array with additional characters. The grid layout uses `grid-cols-7`:
+
+    ```typescript
+    <div className="grid grid-cols-7 items-end gap-4">
+    ```
+
+    Change `grid-cols-7` to match the new number of keys, e.g. `grid-cols-8` for a full octave plus one.
+  </Accordion>
+</AccordionGroup>

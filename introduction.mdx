@@ -1,0 +1,100 @@
+---
+title: "Introduction"
+description: "What Quiero Aprender is, who made it, and why it exists."
+---
+
+Quiero Aprender ("I Want to Learn") is an interactive digital book created by and for children at [Platohedro](https://platohedro.org), a creative learning lab in Medellín, Colombia. More than one hundred children — the members of the Matinée program — shaped the project through a year of play, experimentation, and artistic production. The result is six browser-based experiences that weave together sound, 3D graphics, drawing, science simulation, and cooperative games.
+
+The project was funded in 2025 by the **Presupuesto Participativo of Comuna 9 – Buenos Aires**, under the _Narrativas Digitales y Expresión Cultural en Arte, Cultura, Ciencia y Tecnología_ funding line. Platohedro received the stimulus and used it to prototype a living digital artifact that the community can continue to grow.
+
+## Platohedro and Matinée
+
+Platohedro is an open laboratory that brings together artists, educators, hackers, and community organizers in Medellín. Within it, **Matinée** is a recurring program for children that combines sensitive pedagogies, digital fabrication, and artistic expression. Participants do not consume content — they produce it. The drawings, characters, sounds, and games inside Quiero Aprender are theirs.
+
+Quiero Aprender is a prototype. The team documents every decision so that other communities can replicate and adapt it. Future iterations will add camera upload for real images, saved favourites, and facilitation guides for accompanying adults.
+
+## Key technologies
+
+| Technology | Role |
+|---|---|
+| [Next.js 14](https://nextjs.org/) with App Router | Page rendering and routing |
+| [TypeScript](https://www.typescriptlang.org/) | Type-safe component authoring |
+| [React Three Fiber](https://docs.pmnd.rs/react-three-fiber) + [`@react-three/drei`](https://github.com/pmndrs/drei) | 3D scenes and FBX model rendering |
+| [Tailwind CSS](https://tailwindcss.com/) | Utility-first styling with custom sticker-card utilities |
+| Web Audio API | Real-time sound synthesis in the browser |
+| Canvas 2D API | Watercolor painting simulation |
+| WebGL / custom shaders | Lava lamp physics visualization |
+
+The visual identity uses **Space Grotesk** for display text and **Inter** for body copy. The palette — `#80C1DD`, `#F2AADC`, `#DCF2AA`, `#C0AAF2` — gives every card a handmade sticker aesthetic with offset shadows.
+
+## The six experiences
+
+Each experience maps to one chapter of the digital book. Children navigate between chapters using the **Capítulos** dropdown in the top navigation bar.
+
+<CardGroup cols={2}>
+  <Card title="Mi primera semilla sonora" icon="seedling" href="/experiences/semillas-sonoras">
+    Tap seeds to activate audio loops built with the Web Audio API. Each seed produces a distinct musical texture. A marimba instrument is also included in this chapter for melodic play.
+  </Card>
+  <Card title="Galería de personajes" icon="users" href="/experiences/galeria-personajes">
+    A 3D gallery of fantastical characters invented by children. Models are loaded as FBX files and displayed on a handcrafted 3D atril (easel) rendered with React Three Fiber and adaptive camera framing.
+  </Card>
+  <Card title="Pintura en acuarela" icon="paintbrush" href="/experiences/acuarela">
+    A Canvas 2D painting tool that simulates watercolor behaviour — colours expand, blend, and vary in opacity as you paint. Finished works can be exported as PNG files.
+  </Card>
+  <Card title="Laboratorio de lava" icon="flask" href="/experiences/laboratorio-lava">
+    An interactive lava lamp simulation using custom WebGL shaders. Children observe neon blobs that react to clicks, formulate hypotheses, and follow guided steps to explore how matter moves.
+  </Card>
+  <Card title="Juego de autocuidado" icon="dice" href="/experiences/juego-autocuidado">
+    A cooperative board game with 45 squares. An animated dice roll determines movement, and landing squares present self-care challenges, questions, and affirming cards for group reflection.
+  </Card>
+  <Card title="Animalario" icon="paw-print" href="/experiences/animalario">
+    A vertical slot machine that combines heads, bodies, and legs from different animals to invent impossible creatures. Each combination is a prompt for storytelling and collaborative drawing.
+  </Card>
+</CardGroup>
+
+## How the app is organised
+
+The application is a single Next.js page (`app/page.tsx`) that renders all six chapters as full-width themed sections. A sticky top navigation bar with an **Inicio** link and a **Capítulos** dropdown lets visitors jump directly to any chapter. An `IntersectionObserver` updates the active chapter as the user scrolls, keeping the navigation in sync.
+
+Each interactive experience is a self-contained React component marked `"use client"` to enable browser APIs (audio, canvas, WebGL). Components live under `components/` with subdirectories for more complex experiences:
+
+```
+components/
+  SemillasSonoras.tsx     # Sound seeds
+  Marimba.tsx             # Marimba instrument
+  GaleriaPersonajes.tsx   # 3D character gallery
+  galeria/
+    AtrilScene.tsx        # Three.js atril scene
+  Acuarela.tsx            # Watercolor canvas
+  LavaLampLab.tsx         # Lava lamp container
+  lava/
+    LavaShaderPanel.tsx   # WebGL shader panel
+  mesa/
+    AutoCuidadoBoard.tsx  # Self-care board game
+  slot/
+    Slot777Vertical.tsx   # Animal slot machine
+```
+
+Every chapter can also be opened as a standalone page via the **Abrir solo** (Open alone) button, which navigates to `/sesiones/[id]`.
+
+<Note>
+  The application interface is entirely in Spanish. Variable names, component identifiers, and configuration files use English, but all visible text — navigation labels, chapter titles, button text, and game copy — is in Spanish.
+</Note>
+
+## Funding and credits
+
+Quiero Aprender was built by the Yo Quiero Aprender team at Conexión Platohedro using open technologies. It is funded by the **Presupuesto Participativo, Comuna 9 – Buenos Aires** under Medellín's local development and participatory culture budget. Terre des Hommes and the Alcaldía de Medellín are supporting partners.
+
+To learn more about the project or propose collaboration, write to [hola@platohedro.org](mailto:hola@platohedro.org).
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run the project on your machine in under five minutes.
+  </Card>
+  <Card title="Architecture overview" icon="layer-group" href="/architecture/overview">
+    Understand the file structure, routing, and component model.
+  </Card>
+  <Card title="Sound Seeds" icon="seedling" href="/experiences/semillas-sonoras">
+    Dive into the first experience — how it works and how to extend it.
+  </Card>
+</CardGroup>

@@ -1,0 +1,295 @@
+---
+title: "Design system & styling"
+description: The visual design language, CSS utilities, color tokens, typography, and Tailwind configuration for Quiero Aprender.
+---
+
+Quiero Aprender uses a **sticker aesthetic**: thick black borders, offset box shadows in pastel colors, and rounded corners that make UI elements feel like physical stickers or cut-paper shapes. All styling is driven by Tailwind CSS extended with a small set of custom CSS utilities and CSS custom properties defined in `styles/globals.css`.
+
+## Color palette
+
+The design uses two complementary sets of color values: semantic CSS custom properties for the overall page palette, and shadow-specific colors used by interactive components.
+
+### Brand colors
+
+Defined in `:root` in `styles/globals.css`:
+
+```css styles/globals.css
+:root {
+  --color-sky:      #8cc8ff;
+  --color-rose:     #f8b3ef;
+  --color-lime:     #bff49f;
+  --color-lavender: #c5c2ff;
+  --color-ink:      #0f172a;
+  --color-paper:    #f4f4f6;
+}
+```
+
+| Token | Value | Usage |
+|---|---|---|
+| `--color-sky` | `#8cc8ff` | `bg-brand-sky` |
+| `--color-rose` | `#f8b3ef` | `bg-brand-rose` |
+| `--color-lime` | `#bff49f` | `bg-brand-lime` |
+| `--color-lavender` | `#c5c2ff` | `bg-brand-lavender` |
+| `--color-ink` | `#0f172a` | `text-brand-ink` |
+| `--color-paper` | `#f4f4f6` | `bg-brand-paper` |
+
+The paper color (`#f4f4f6`) is the background of the entire page. Ink (`#0f172a`) is used for headings and high-contrast text throughout.
+
+### Shadow colors
+
+The four pastel shadow colors cycle across sticker cards and nav buttons. They are defined as a constant in `components/themes.tsx` and passed via the `--shadow-color` CSS variable:
+
+```typescript components/themes.tsx
+const SHADOW_COLORS = ["#80C1DD", "#F2AADC", "#DCF2AA", "#C0AAF2"] as const;
+```
+
+| Name | Value |
+|---|---|
+| Sky | `#80C1DD` |
+| Rose | `#F2AADC` |
+| Lime | `#DCF2AA` |
+| Lavender | `#C0AAF2` |
+
+<Note>
+  The shadow colors are intentionally slightly darker and more saturated than the `:root` brand colors. They are designed for use as box shadows against white backgrounds, where the contrast needs to be more visible.
+</Note>
+
+### Tailwind color tokens
+
+The brand colors are registered in `tailwind.config.ts` under the `brand` namespace so you can use them as Tailwind classes:
+
+```typescript tailwind.config.ts
+theme: {
+  extend: {
+    colors: {
+      brand: {
+        sky:      "var(--color-sky)",
+        rose:     "var(--color-rose)",
+        lime:     "var(--color-lime)",
+        lavender: "var(--color-lavender)",
+        ink:      "var(--color-ink)",
+        paper:    "var(--color-paper)",
+      },
+    },
+  },
+},
+```
+
+Usage: `bg-brand-sky`, `text-brand-ink`, `bg-brand-paper`.
+
+---
+
+## Typography
+
+Two Google Fonts are loaded in `app/layout.tsx` and injected as CSS variables onto the `<body>`. Tailwind maps these variables to font family utilities.
+
+<CardGroup cols={2}>
+  <Card title="Space Grotesk" icon="heading">
+    **CSS variable:** `--font-heading`
+
+    **Tailwind utility:** `font-display`
+
+    Used for all headings (`h1`–`h6`), eyebrow labels, nav items, and any element that needs visual distinction. Loaded at weights 400, 500, 600, 700. Applied in CSS with `letter-spacing: -0.01em` for a tighter, display-style feel.
+  </Card>
+  <Card title="Inter" icon="type">
+    **CSS variable:** `--font-body`
+
+    **Tailwind utility:** `font-sans`
+
+    Used for body text, descriptions, paragraphs, buttons, and form elements. Loaded at weights 400, 500, 600, 700. The default `font-sans` in Tailwind is remapped to this variable.
+  </Card>
+</CardGroup>
+
+```css styles/globals.css
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), "Space Grotesk", sans-serif;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+body, p, span, li, button, input, textarea {
+  font-family: var(--font-body), "Inter", system-ui, sans-serif;
+}
+```
+
+```typescript tailwind.config.ts
+fontFamily: {
+  sans:    ["var(--font-body)", "Inter", "system-ui", "sans-serif"],
+  display: ["var(--font-heading)", "Space Grotesk", "sans-serif"],
+},
+```
+
+---
+
+## CSS utility classes
+
+Two custom utility classes define the sticker aesthetic. Both are declared inside `@layer components` in `styles/globals.css`, which means Tailwind's purge process respects them and they can be overridden with Tailwind utilities.
+
+### `.sticker-card`
+
+A rounded card with a thick black border and a colored offset shadow. On hover, the card shifts up-left to reveal a larger shadow, creating the effect of the card being "lifted".
+
+```css styles/globals.css
+.sticker-card {
+  @apply rounded-[26px] border-2 border-black bg-white px-6 py-5
+         transition-transform duration-200 ease-out;
+  box-shadow: 6px 6px 0 var(--shadow-color, #80c1dd);
+}
+
+.sticker-card:hover {
+  transform: translate(-6px, -6px);
+  box-shadow: 10px 10px 0 var(--shadow-color, #80c1dd);
+}
+```
+
+| Property | Value |
+|---|---|
+| Border radius | `rounded-[26px]` (26 px) |
+| Border | `2px solid black` |
+| Background | `bg-white` |
+| Padding | `px-6 py-5` |
+| Default shadow | `6px 6px 0 var(--shadow-color)` |
+| Hover transform | `translate(-6px, -6px)` |
+| Hover shadow | `10px 10px 0 var(--shadow-color)` |
+| Transition | `duration-200 ease-out` |
+
+To set the shadow color on a specific card, pass `--shadow-color` as an inline CSS variable:
+
+```tsx
+import type { CSSProperties } from "react";
+
+<div
+  className="sticker-card"
+  style={{ "--shadow-color": "#F2AADC" } as CSSProperties}
+>
+  Card content
+</div>
+```
+
+### `.sticker-button`
+
+A pill-shaped button with the same offset shadow pattern, scaled for interactive buttons. The default shadow color is rose (`#f2aadc`).
+
+```css styles/globals.css
+.sticker-button {
+  @apply inline-flex items-center justify-center rounded-full border-2 border-black
+         bg-white px-5 py-2 text-sm font-semibold
+         transition-transform duration-150 ease-out;
+  box-shadow: 4px 4px 0 var(--shadow-color, #f2aadc);
+}
+
+.sticker-button:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0 var(--shadow-color, #f2aadc);
+}
+```
+
+| Property | Value |
+|---|---|
+| Shape | `rounded-full` (pill) |
+| Border | `2px solid black` |
+| Padding | `px-5 py-2` |
+| Default shadow | `4px 4px 0 var(--shadow-color)` |
+| Hover transform | `translate(-4px, -4px)` |
+| Hover shadow | `8px 8px 0 var(--shadow-color)` |
+| Transition | `duration-150 ease-out` |
+
+<Tip>
+  Both utilities accept `--shadow-color` as a CSS variable, so you can theme them per-instance without writing new CSS. Pass the variable as an inline style on the element that carries the class.
+</Tip>
+
+---
+
+## Tailwind configuration
+
+`tailwind.config.ts` is minimal — it extends Tailwind's defaults with the custom fonts and brand colors. The `content` array covers all TypeScript and JSX files in `app/` and `components/`.
+
+```typescript tailwind.config.ts
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans:    ["var(--font-body)", "Inter", "system-ui", "sans-serif"],
+        display: ["var(--font-heading)", "Space Grotesk", "sans-serif"],
+      },
+      colors: {
+        brand: {
+          sky:      "var(--color-sky)",
+          rose:     "var(--color-rose)",
+          lime:     "var(--color-lime)",
+          lavender: "var(--color-lavender)",
+          ink:      "var(--color-ink)",
+          paper:    "var(--color-paper)",
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+```
+
+<Note>
+  No Tailwind plugins are used. The `sticker-card` and `sticker-button` utilities are added via `@layer components` in `globals.css` rather than through a plugin, which keeps the configuration simple.
+</Note>
+
+---
+
+## Global base styles
+
+`styles/globals.css` sets a few global defaults beyond the custom utilities:
+
+```css styles/globals.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply font-sans;
+  background-color: #f4f4f6;
+  color: #111827;
+  letter-spacing: 0;
+}
+```
+
+The `background-color: #f4f4f6` ensures the paper color covers the full viewport height even when page content is short. `letter-spacing: 0` resets any browser-default tracking on body text.
+
+---
+
+## Applying the sticker style to custom components
+
+When adding a new interactive element, follow this pattern to stay consistent with the design system:
+
+<Steps>
+  <Step title="Choose a shadow color">
+    Pick one of the four shadow colors: `#80C1DD`, `#F2AADC`, `#DCF2AA`, or `#C0AAF2`. If the component is inside a `ThemedSection` that cycles colors, use the index-based cycling from `SHADOW_COLORS` in `components/themes.tsx`.
+  </Step>
+  <Step title="Apply the utility class">
+    Add `sticker-card` or `sticker-button` to your element's `className`.
+  </Step>
+  <Step title="Set the CSS variable">
+    Pass `--shadow-color` as an inline style. Import `CSSProperties` from React to satisfy TypeScript.
+
+    ```tsx
+    import type { CSSProperties } from "react";
+
+    <button
+      className="sticker-button"
+      style={{ "--shadow-color": "#DCF2AA" } as CSSProperties}
+    >
+      Explorar →
+    </button>
+    ```
+  </Step>
+</Steps>

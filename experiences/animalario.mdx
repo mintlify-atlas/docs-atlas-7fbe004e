@@ -1,0 +1,119 @@
+---
+title: "Animalario (Animal slot machine)"
+description: "A vertical slot machine that combines heads, bodies, and feet to create fantastical creatures."
+---
+
+The Animalario is a vertical slot machine where spinning three reels combines animal parts — head, body, and feet — into unpredictable fantastical creatures. Children spin the reels and use each combination as a creative prompt: draw it, name it, give it a story.
+
+Standalone URL: `/sesiones/slot`
+
+## How it works
+
+The experience is built from three components:
+
+- **`Slot777Vertical`** (`components/slot/Slot777Vertical.tsx`) — the main machine shell, state, and spin logic
+- **`ReelAnimated`** (`components/slot/ReelAnimated.tsx`) — animates individual reels during a spin
+- **`Lever`** (`components/slot/Lever.tsx`) — the pull-lever trigger button
+
+### Animal part datasets
+
+Animal images follow a strict naming convention inside `public/`:
+
+| Folder | Part | File pattern |
+|--------|------|-------------|
+| `/caja1/` | Head (Cabeza) | `animal{N}.1.png` |
+| `/caja2/` | Body (Cuerpo) | `animal{N}.2.png` |
+| `/caja3/` | Feet (Pies) | `animal{N}.3.png` |
+
+Datasets are built dynamically at startup:
+
+```typescript
+const buildDataset = (count: number, part: 1 | 2 | 3): Parte[] => {
+  const folder = part === 1 ? "/caja1" : part === 2 ? "/caja2" : "/caja3";
+  return Array.from({ length: count }, (_, i) => {
+    const n = i + 1;
+    return {
+      id: `${part === 1 ? "c" : part === 2 ? "b" : "p"}${n}`,
+      label: part === 1 ? `Cabeza ${n}` : part === 2 ? `Cuerpo ${n}` : `Pies ${n}`,
+      bg: "#0f1a24",
+      src: `${folder}/animal${n}.${part}.png`,
+      alt: `Animal ${n} parte ${part}`,
+    };
+  });
+};
+
+const TOTAL_ANIMALES = 25; // increase when adding more animals
+```
+
+### Spin timing
+
+Each reel stops at a different time, creating a staggered effect:
+
+```typescript
+const machineSlots = [
+  { key: "head", dataset: CABEZAS, duration: 1500 },
+  { key: "body", dataset: CUERPOS, duration: 2200 },
+  { key: "feet", dataset: PIES,   duration: 2900 },
+];
+```
+
+The machine plays a coin-drop sound via the Web Audio API (`AudioContext`) when a spin is triggered, and shows a congratulations message when the reels land.
+
+### Responsive sizing
+
+The reel window size adapts to the container width:
+
+```typescript
+const WINDOW_SIZE_MIN = 160;
+const WINDOW_SIZE_MAX = 200;
+// size = clamp(min, max, containerHeight * 0.22)
+```
+
+## Using the Animalario
+
+<Steps>
+  <Step title="Pull the lever">
+    Click the lever (or the spin button) to start all three reels spinning simultaneously.
+  </Step>
+  <Step title="Watch the reels stop">
+    The head reel stops first (1.5 s), then the body (2.2 s), then the feet (2.9 s).
+  </Step>
+  <Step title="Meet your creature">
+    A congratulations message appears with the name of the new combination. Use it as a creative prompt!
+  </Step>
+  <Step title="Spin again">
+    Pull the lever again for a new creature. With 25 animals × 3 parts, there are 15,625 possible combinations.
+  </Step>
+</Steps>
+
+## Adding new animals
+
+<Steps>
+  <Step title="Prepare the images">
+    Create three PNG files for each new animal following the naming convention:
+    - `animal{N}.1.png` — head
+    - `animal{N}.2.png` — body
+    - `animal{N}.3.png` — feet
+
+    Use a transparent background and consistent canvas size with existing images.
+  </Step>
+  <Step title="Place the files">
+    Copy the images into the correct folders inside `public/`:
+    ```
+    public/
+      caja1/animal{N}.1.png
+      caja2/animal{N}.2.png
+      caja3/animal{N}.3.png
+    ```
+  </Step>
+  <Step title="Update the count">
+    In `components/slot/Slot777Vertical.tsx`, increment `TOTAL_ANIMALES`:
+    ```typescript
+    const TOTAL_ANIMALES = 26; // was 25
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  All three part images for one animal should be designed to align visually when stacked — the head at the top, body in the middle, and feet at the bottom of the reel window.
+</Tip>

@@ -1,0 +1,86 @@
+{
+  "projectType": "frontend",
+  "projectName": "Quiero Aprender",
+  "projectDescription": "An interactive digital book built with Next.js and React Three Fiber, featuring six creative experiences designed by and for children at Platohedro — spanning sound seeds, 3D character galleries, watercolor painting, lava lamp experiments, a self-care board game, and an animal slot machine.",
+  "theme": "almond",
+  "primaryColor": "#619eae",
+  "lightColor": "#1d1a1e",
+  "darkColor": "#dee9ec",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Architecture",
+            "pages": ["architecture/overview", "architecture/components", "architecture/styling"]
+          }
+        ]
+      },
+      {
+        "tab": "Experiences",
+        "groups": [
+          {
+            "group": "Sound & Music",
+            "pages": ["experiences/semillas-sonoras", "experiences/marimba"]
+          },
+          {
+            "group": "Visual Arts",
+            "pages": ["experiences/galeria-personajes", "experiences/acuarela"]
+          },
+          {
+            "group": "Science & Play",
+            "pages": ["experiences/laboratorio-lava", "experiences/animalario"]
+          },
+          {
+            "group": "Social & Emotional",
+            "pages": ["experiences/juego-autocuidado"]
+          }
+        ]
+      },
+      {
+        "tab": "Contributing",
+        "groups": [
+          {
+            "group": "Development",
+            "pages": ["contributing/setup", "contributing/adding-experiences", "contributing/deployment"]
+          },
+          {
+            "group": "Project",
+            "pages": ["contributing/about", "contributing/credits"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Six interactive creative experiences for children",
+    "3D character gallery using React Three Fiber and FBX models",
+    "Web Audio API-powered sound seeds with real-time playback control",
+    "Canvas 2D watercolor painting with color mixing and PNG export",
+    "Interactive lava lamp simulation with custom shaders",
+    "45-square cooperative self-care board game with dice animation",
+    "Animal slot machine (Animalario) combining creature parts randomly",
+    "Marimba instrument with keyboard interaction",
+    "Sticker-style visual design system with pastel shadow offsets",
+    "Responsive layout with sticky navigation and smooth section scrolling"
+  ],
+  "publicApiSurface": [
+    "GET /api/semillas — returns manifest of sound seed assets",
+    "SemillasSonoras component — interactive audio seed gallery",
+    "GaleriaPersonajes component — 3D character viewer with OrbitControls",
+    "Acuarela component — Canvas 2D watercolor painting tool",
+    "LavaLampLab component — shader-based lava lamp simulation",
+    "AutoCuidadoBoard component — 45-square board game with dice",
+    "Slot777Vertical component — animal parts slot machine",
+    "Marimba component — interactive marimba instrument",
+    "ThemedSection component — section layout wrapper with highlights",
+    "TopNav component — sticky navigation with chapters dropdown",
+    "sticker-card CSS utility — pastel offset shadow card style",
+    "sticker-button CSS utility — pill-shaped interactive button style"
+  ]
+}

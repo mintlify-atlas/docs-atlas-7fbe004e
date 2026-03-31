@@ -1,0 +1,182 @@
+---
+title: "Adding a new experience"
+description: "How to create and register a new interactive experience chapter"
+---
+
+## Overview
+
+Each experience in Quiero Aprender is a self-contained React component embedded inside a `ThemedSection` on the main page and also accessible via its own standalone route at `/sesiones/<id>`.
+
+Adding a new experience requires changes in four places:
+
+1. Create the component
+2. Add a standalone route
+3. Register the experience in `app/page.tsx`
+4. Add a navigation entry in `components/themes.tsx`
+
+---
+
+<Steps>
+  <Step title="Create your component">
+    Create a new file at `components/YourExperience.tsx`. Every interactive component must declare `"use client"` at the top.
+
+    ```tsx
+    "use client";
+    import React, { useState } from "react";
+
+    export default function YourExperience() {
+      const [active, setActive] = useState(false);
+
+      return (
+        <div className="rounded-xl border-2 border-black p-6">
+          <button
+            onClick={() => setActive(!active)}
+            className="sticker-button"
+          >
+            {active ? "¡Activo!" : "Activar"}
+          </button>
+        </div>
+      );
+    }
+    ```
+
+    <Tip>
+      Keep your component self-contained. Avoid importing shared state from `page.tsx` — pass everything the component needs as props or manage it internally with `useState`. This keeps the standalone route working identically to the embedded version.
+    </Tip>
+
+    If your experience needs 3D assets, audio files, or images, put them in `public/` and reference them with a root-relative path (e.g., `/my-model.fbx`).
+  </Step>
+
+  <Step title="Add a standalone session route">
+    Create `app/sesiones/your-id/page.tsx`. This page renders your component full-screen with no navigation chrome:
+
+    ```tsx
+    import YourExperience from "@/components/YourExperience";
+
+    export default function YourExperiencePage() {
+      return (
+        <main className="min-h-screen bg-white">
+          <YourExperience />
+        </main>
+      );
+    }
+    ```
+
+    The standalone page is reachable at `/sesiones/your-id` and is linked from the **Abrir solo** button that `StandaloneButton` renders automatically (see next step).
+  </Step>
+
+  <Step title="Register the experience in app/page.tsx">
+    You need to make three edits inside `app/page.tsx`.
+
+    **1. Import your component** at the top of the file alongside the existing imports:
+
+    ```tsx
+    import YourExperience from "@/components/YourExperience";
+    ```
+
+    **2. Add an entry to the `sesiones` array** inside the `Inicio` component. This powers the chapter cards on the home screen:
+
+    ```tsx
+    const sesiones = [
+      // ...existing entries...
+      {
+        id: 'your-id',
+        title: 'Your experience title',
+        icon: '🔮',
+        description: 'One sentence describing what participants will do.',
+      },
+    ];
+    ```
+
+    **3. Add a `ThemedSection`** in the JSX returned by `YoQuieroAprenderApp`, following the pattern used by existing chapters:
+
+    ```tsx
+    <ThemedSection
+      id="your-id"
+      title="Your experience title"
+      eyebrow="Capítulo 07"
+      description="A short paragraph introducing the experience and its pedagogical context."
+      highlights={[
+        { icon: '🔮', title: 'Feature one', text: 'Brief description.' },
+        { icon: '✨', title: 'Feature two', text: 'Brief description.' },
+      ]}
+    >
+      <StandaloneButton id="your-id" />
+      <YourExperience />
+    </ThemedSection>
+    ```
+
+    **4. Add your id to the `sectionIds` observer array** so scroll-tracking highlights the correct nav tab:
+
+    ```tsx
+    const sectionIds = [
+      'inicio',
+      'semillas',
+      'galeria',
+      'laboratorio',
+      'mesa',
+      'acuarela',
+      'slot',
+      'your-id',   // add here
+      'sobre',
+      'creditos',
+    ];
+    ```
+  </Step>
+
+  <Step title="Add a navigation entry in components/themes.tsx">
+    Open `components/themes.tsx`. Inside the `TopNav` function, find the two local arrays and add your experience to both:
+
+    **`allTabs`** — the full list used by the mobile nav panel:
+
+    ```tsx
+    const allTabs = [
+      // ...existing entries...
+      { id: 'your-id', label: 'Your title' },
+    ];
+    ```
+
+    **`chapterTabs`** — used to derive the mobile chapter list (exclude `inicio`, `sobre`, `creditos`):
+
+    ```tsx
+    const mobileChapterTabs = allTabs.filter(
+      (t) => !["inicio", "sobre", "creditos"].includes(t.id)
+    );
+    ```
+
+    Also find the `ChaptersDropdown` component's internal `tabs` array and add your entry there so it appears in the desktop dropdown:
+
+    ```tsx
+    const tabs = [
+      // ...existing entries...
+      { id: 'your-id', label: 'Your title' },
+    ];
+    ```
+
+    After this change, your experience will appear in the **Capítulos** dropdown and mobile nav panel.
+  </Step>
+</Steps>
+
+---
+
+## Checklist
+
+<AccordionGroup>
+  <Accordion title="Before you open a pull request">
+    - Component file exists at `components/YourExperience.tsx` with `"use client"` as the first line
+    - Standalone route exists at `app/sesiones/your-id/page.tsx`
+    - Entry added to `sesiones` array in `Inicio` component
+    - `ThemedSection` added with correct `id`, `eyebrow`, and `description`
+    - `your-id` added to `sectionIds` observer array
+    - `allTabs` and `tabs` inside `ChaptersDropdown` updated in `components/themes.tsx`
+    - Any static assets (3D models, audio, images) placed in `public/`
+    - `npm run build` completes without errors
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Related pages
+
+- [Development setup](/contributing/setup)
+- [Self-care board game](/experiences/juego-autocuidado) — a worked example of a fully implemented experience

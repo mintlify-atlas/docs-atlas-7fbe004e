@@ -1,0 +1,146 @@
+---
+title: "Self-care board game"
+description: "Cooperative 45-square board game with dice animations and self-care cards"
+---
+
+## Overview
+
+The self-care board game is a cooperative experience where players travel a 45-square path together, landing on squares that prompt them to share emotions, reflect on daily habits, and care for each other. Nobody wins alone — the goal is for everyone to reach the **META** square by supporting each other along the way.
+
+The experience lives at `/sesiones/mesa` as a standalone route and is also embedded as **Chapter 04** of the main app.
+
+<Note>
+  This experience is designed for group play with a facilitator present, though it works equally well for solo reflection.
+</Note>
+
+---
+
+## Board structure
+
+The board is defined as a `BOARD_PATH` array of 46 positions (index 0 = INICIO, index 45 = META) laid out as a closed rectangular loop rendered on an SVG canvas scaled to `1900 × 1400` logical units.
+
+| Side | Direction | Squares |
+|---|---|---|
+| Bottom row | Left → right | 1–11 |
+| Right side | Bottom → top | 12–21 |
+| Top row | Right → left | 22–32 |
+| Left side | Top → bottom | 33–41 |
+| Approach to META | Left → right | 42–44 + META |
+
+Each entry in `BOARD_PATH` carries four fields:
+
+```typescript
+type BoardSquare = {
+  x: number;        // logical SVG x coordinate
+  y: number;        // logical SVG y coordinate
+  number: string;   // "1"–"44", "INICIO", or "META"
+  color: string;    // hex fill for the square
+  special: "start" | "challenge" | "advice" | "finish" | null;
+  text: string | null;
+};
+```
+
+### Special square types
+
+<CardGroup cols={3}>
+  <Card title="Start" icon="flag">
+    Square 0 (INICIO). Players begin here. No card is drawn on this square.
+  </Card>
+  <Card title="Challenge" icon="circle-question">
+    Draws a question card from `QUESTION_CARDS`. The active player reads the self-care question aloud and the group reflects together.
+  </Card>
+  <Card title="Advice" icon="lightbulb">
+    Draws a tip card from `ADVICE_CARDS`. The card suggests a concrete self-care action the player can try right now.
+  </Card>
+</CardGroup>
+
+---
+
+## The dice
+
+The `FancyDie` component renders an SVG die using `<circle>` pips positioned on a `64 × 64` viewBox. While rolling, the die spins with a Tailwind keyframe animation (`animate-[spin_0.6s_linear_infinite]`). The result is a random integer between 1 and 6 resolved after a short delay via `useState` and `requestAnimationFrame`.
+
+```tsx
+function FancyDie({ value, rolling }: { value: 1|2|3|4|5|6; rolling: boolean }) {
+  const pip = (x: number, y: number) => <circle cx={x} cy={y} r={6} />;
+
+  const faces: Record<1|2|3|4|5|6, JSX.Element> = {
+    1: <g>{pip(32, 32)}</g>,
+    2: <g>{pip(16, 16)}{pip(48, 48)}</g>,
+    3: <g>{pip(16, 16)}{pip(32, 32)}{pip(48, 48)}</g>,
+    4: <g>{pip(16, 16)}{pip(48, 16)}{pip(16, 48)}{pip(48, 48)}</g>,
+    5: <g>{pip(16, 16)}{pip(48, 16)}{pip(32, 32)}{pip(16, 48)}{pip(48, 48)}</g>,
+    6: <g>{pip(16, 16)}{pip(48, 16)}{pip(16, 32)}{pip(48, 32)}{pip(16, 48)}{pip(48, 48)}</g>,
+  };
+
+  return (
+    <div className={`h-16 w-16 rounded-xl ... ${rolling ? 'animate-[spin_0.6s_linear_infinite]' : ''}`}>
+      <svg viewBox="0 0 64 64" className="h-12 w-12 fill-cyan-900">
+        {faces[value]}
+      </svg>
+    </div>
+  );
+}
+```
+
+---
+
+## Card decks
+
+### Advice cards (`ADVICE_CARDS`)
+
+Each advice card includes a title, emoji icon, short description, and a follow-up prompt that invites the player to act immediately.
+
+| # | Title | Action |
+|---|---|---|
+| 1 | Pausa Digital | 10 minutes screen-free |
+| 2 | Agua Fresca | Drink water and breathe deeply |
+| 3 | Diario Agradecido | Write one thing you're grateful for |
+| 4 | Movimiento Activo | 5 jumps or a mini workout |
+| 5 | Tiempo Al Aire Libre | Step outside for fresh air |
+
+### Question cards (`QUESTION_CARDS`)
+
+Challenge squares prompt a self-care question followed by a brief reflection note. Example questions:
+
+- "¿Tomaste al menos 5 vasos de agua hoy?"
+- "¿Dormiste al menos 8 horas anoche?"
+- "¿Hablaste con alguien sobre cómo te sientes?"
+
+---
+
+## How to play
+
+<Steps>
+  <Step title="Open the game">
+    Navigate to the `/sesiones/mesa` standalone route or scroll to Chapter 04 on the main page. All players start at the **INICIO** square.
+  </Step>
+  <Step title="Roll the dice">
+    The current player taps the **Lanzar dado** button. The die animates for ~600 ms and then lands on a value between 1 and 6. The player token moves forward that many squares.
+  </Step>
+  <Step title="Land on a special square">
+    - **Challenge square** — a question card appears. Read the question aloud, answer honestly, and share with the group.
+    - **Advice square** — a tip card appears. Read the suggestion and decide together if someone wants to try it.
+    - **Plain square** — no card. Pass the turn to the next player.
+  </Step>
+  <Step title="Reach the META">
+    Once any player lands on or passes square 44, the token moves to **META** and the group celebrates together. The experience loops back to INICIO so play can continue.
+  </Step>
+</Steps>
+
+<Tip>
+  Facilitators can pause on any card and invite participants to share a memory or emotion related to the prompt — this deepens the cooperative experience beyond the game mechanics.
+</Tip>
+
+---
+
+## Mobile support
+
+The board SVG supports pinch-to-zoom and pan gestures via pointer events, managed through `pointersRef` and `lastPinchDistRef`. A **Resetear vista** button restores the default scale and offset on small screens.
+
+---
+
+## Related pages
+
+- [Architecture overview](/architecture/overview)
+- [Adding a new experience](/contributing/adding-experiences)

@@ -1,0 +1,144 @@
+---
+title: "Watercolor painting"
+description: "Canvas 2D watercolor painting tool with color blending and PNG export"
+---
+
+The watercolor experience is an interactive painting tool that runs entirely in the browser. It gives children a digital canvas that mimics the soft, translucent quality of real watercolor paint — with natural pigment bleed, wetness-driven blooms, and grainy paper texture. You pick a color, adjust brush size, opacity, wetness, and flow, then paint freely. When you are done, you can save the artwork as a PNG file.
+
+The experience is available at `/sesiones/acuarela` (Session 3 — *Pinta tu galaxia*).
+
+<CardGroup cols={2}>
+  <Card title="Standalone URL" icon="link">
+    `/sesiones/acuarela` — dedicated route for the watercolor painting session.
+  </Card>
+  <Card title="Component" icon="code">
+    `components/Acuarela.tsx` — client component, Canvas 2D API only, no external drawing libraries.
+  </Card>
+</CardGroup>
+
+## How to use
+
+### Paint
+
+Press and hold the mouse button (or touch the screen) anywhere on the canvas and drag to paint. The brush leaves soft, semi-transparent strokes that build up with each pass, just like layering washes of real watercolor.
+
+### Adjust the brush
+
+The toolbar above the canvas exposes five controls:
+
+| Control | Range | Effect |
+| --- | --- | --- |
+| **Color** | Any hex color | Sets the pigment color for new strokes. The SVG cursor updates to match the selected color. |
+| **Size** (`Tamaño`) | 5 – 80 | Controls the base brush radius in pixels. Larger values produce wider, flatter ellipses. |
+| **Opacity** (`Opacidad`) | 0.10 – 1.00 | Base alpha of each stroke layer. Lower values create lighter washes. |
+| **Wetness** (`Humedad`) | 0.40 – 1.00 | How much pigment bleeds outward from each ellipse. High wetness triggers bloom glows and pigment-bleed satellite drops. |
+| **Flow** (`Flujo`) | 0.50 – 1.00 | Controls stroke elongation and how densely pigment fills each step along the stroke path. |
+
+### Clear the canvas
+
+Click **Limpiar** to reset the canvas to the paper texture. The paper grain is regenerated from the same seed, so it looks identical to the initial state.
+
+### Save as PNG
+
+Click **Guardar PNG** to download the current canvas as a PNG file named `matinee-acuarela-<timestamp>.png`. The export uses `canvas.toBlob()` when available, with a `canvas.toDataURL()` fallback.
+
+## Technical implementation
+
+### Canvas 2D API and paper texture
+
+The canvas element is sized to fill its container width (minimum 600 px) at a fixed height of 420 px. On mount, `createPaperTexture` generates a dedicated off-screen canvas filled with `#fdfdfd` and a per-pixel noise pass (`±7` grey value) to simulate paper grain:
+
+```typescript
+for (let i = 0; i < data.length; i += 4) {
+  const grain = Math.random() * 14 - 7;
+  data[i]     = Math.max(0, Math.min(255, data[i]     + grain));
+  data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + grain));
+  data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + grain));
+}
+```
+
+The texture canvas is stored in `paperTextureRef` and re-drawn onto the main canvas on clear.
+
+### Stroke rendering with `drawWatercolorStroke`
+
+Every pointer move produces a call to `drawWatercolorStroke(fromX, fromY, toX, toY, pressure)`. The function subdivides the segment into steps of 2 px and paints three overlapping layers at each step:
+
+**1. Base ellipse** — a radial gradient fills an ellipse oriented along the stroke direction. The ellipse is elongated along the travel axis and compressed perpendicular to it, mimicking the natural shape of a wet bristle:
+
+```typescript
+const elongated = baseSize * (0.55 + currentFlow * 0.9);
+const thickness = baseSize * (0.35 + (1 - currentWetness) * 0.45);
+
+ctx.globalCompositeOperation = "source-over";
+ctx.ellipse(0, 0, elongated, thickness, 0, 0, Math.PI * 2);
+```
+
+**2. Multiply stroke** — a second ellipse drawn with `globalCompositeOperation = "multiply"` darkens where strokes overlap, reproducing how watercolor pigment concentrates at edges:
+
+```typescript
+ctx.globalCompositeOperation = "multiply";
+ctx.strokeStyle = darkerPigment(0.6); // RGB channels each -22
+```
+
+**3. Bloom and bleed (conditional)** — when `wetness > 0.6`, a radial gradient using `"lighter"` composite mode adds a soft glow around each point. When `wetness > 0.55`, 2–6 satellite drops are scattered outward along a randomized angle within 80° of the stroke direction:
+
+```typescript
+if (currentWetness > 0.55 && Math.random() < 0.5) {
+  const bleedCount = 2 + Math.floor(currentWetness * 4);
+  for (let i = 0; i < bleedCount; i++) {
+    const bleedAngle = angle + (Math.random() - 0.5) * Math.PI * 0.8;
+    // small radial gradient drop at bleedX, bleedY
+  }
+}
+```
+
+**4. Grain overlay** — 6–14 tiny circles scattered around each step simulate the paper grain absorbing pigment unevenly.
+
+### Pressure simulation
+
+`drawWatercolorStroke` receives a `pressure` value (0.3 – 1.0) derived from pointer velocity. Faster strokes produce lower pressure, creating thinner strokes. The easing formula applies a sine envelope so strokes start and end with slightly less pressure than the middle:
+
+```typescript
+velocity.current = Math.hypot(dx, dy);
+const pressure = Math.min(1, Math.max(0.3, 1 - velocity.current / 15));
+const easedPressure = pressure * (0.75 + Math.sin(strokeProgress * Math.PI) * 0.25);
+```
+
+### Color blending
+
+`hexToRgb` converts the current hex color to RGB channels. A `darkerPigment` closure subtracts 22 from each channel to produce the edge-darkening color used in the multiply layer. All canvas fills use `rgba(r, g, b, alpha)` strings assembled at draw time — no global color state is set on the context.
+
+### Custom brush cursor
+
+An SVG cursor is generated dynamically and encoded as a data URI. It depicts a paintbrush with a tip circle that matches the current color and a dashed ring sized to the current brush radius. The cursor hotspot is set at coordinates `(17, 42)`, which corresponds to the tip of the brush:
+
+```typescript
+return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 17 42, crosshair`;
+```
+
+The cursor updates whenever `size` or `color` changes via a `useEffect`.
+
+### PNG export
+
+```typescript
+const savePNG = () => {
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.download = `matinee-acuarela-${Date.now()}.png`;
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, "image/png");
+};
+```
+
+If `toBlob` is unavailable, the function falls back to `toDataURL("image/png")`. If both fail (e.g. cross-origin taint), the data URL is opened in a new tab.
+
+## Inspiration gallery
+
+Below the painting canvas, `Acuarela` displays a grid of twelve reference watercolor photographs (`/acuarelas/IMG_20251010_*.jpg`) rendered with `next/image`. The gallery is labelled *Galería de inspiración* and shows real pigment-on-paper work for children to study before or during their digital session.
+
+## See also
+
+- [Architecture overview](/architecture/overview)

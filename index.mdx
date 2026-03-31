@@ -1,97 +1,75 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Quiero Aprender"
+description: "An interactive digital book with six creative experiences designed by and for children at Platohedro — explore sound, art, science, and play."
 ---
 
-## Setting up
+Quiero Aprender ("I Want to Learn") is an interactive digital book created by and for children at [Platohedro](https://platohedro.org), a creative learning space in Medellín, Colombia. Built with Next.js 14, TypeScript, and React Three Fiber, it brings six hands-on experiences to life in the browser — from musical seeds and 3D character galleries to watercolor painting and cooperative board games.
 
-Get your documentation site up and running in minutes.
+The project was funded by the Presupuesto Participativo (Participatory Budget) of Comuna 9 – Buenos Aires, under the Narrativas Digitales y Expresión Cultural initiative.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Learn what Quiero Aprender is, who made it, and what you can do with it.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Clone the repo and run the project locally in a few minutes.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Architecture" icon="layer-group" href="/architecture/overview">
+    Understand how the app is structured, what components exist, and how they fit together.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Experiences" icon="sparkles" href="/experiences/semillas-sonoras">
+    Explore each of the six interactive experiences — how they work and how to extend them.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Six creative experiences
 
-Everything you need to create world-class documentation.
+<CardGroup cols={3}>
+  <Card title="Sound Seeds" icon="music" href="/experiences/semillas-sonoras">
+    Tap seeds to hear unique audio textures. Powered by the Web Audio API with real-time volume control.
+  </Card>
+  <Card title="Marimba" icon="piano-keyboard" href="/experiences/marimba">
+    Play a digital marimba with keyboard and click interaction, producing musical tones in the browser.
+  </Card>
+  <Card title="Character Gallery" icon="users" href="/experiences/galeria-personajes">
+    A 3D gallery of fantastical characters created by children, rendered with React Three Fiber and FBX models.
+  </Card>
+  <Card title="Watercolor Painting" icon="paintbrush" href="/experiences/acuarela">
+    Paint with Canvas 2D — colors blend and spread like real watercolor. Export your work as a PNG.
+  </Card>
+  <Card title="Lava Lamp Lab" icon="flask" href="/experiences/laboratorio-lava">
+    A simulation of lava lamp physics using custom WebGL shaders. Observe, hypothesize, and wonder.
+  </Card>
+  <Card title="Self-Care Game" icon="dice" href="/experiences/juego-autocuidado">
+    A cooperative 45-square board game with dice animations and self-care challenge cards.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Getting started
 
-## Need inspiration?
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/platohedro/Quiero-aprender.git
+    cd Quiero-aprender
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Run the development server">
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
+  </Step>
+  <Step title="Explore the experiences">
+    Navigate between the six chapters using the **Capítulos** dropdown in the top navigation bar.
+  </Step>
+</Steps>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Note>
+  The project is a living prototype. New experiences, content, and features are added as the Matinée community discovers new ideas. Contributions and adaptations are welcome — see the [Contributing](/contributing/setup) section.
+</Note>

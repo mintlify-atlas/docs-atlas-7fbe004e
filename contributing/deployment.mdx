@@ -1,0 +1,114 @@
+---
+title: "Deployment"
+description: "Build and deploy Quiero Aprender"
+---
+
+## Build for production
+
+Run the Next.js production build from the project root:
+
+```bash
+npm run build
+```
+
+This compiles the app with the Next.js App Router, performs static optimisation where possible, and outputs the build artefacts to `.next/`. Resolve any TypeScript or build errors before deploying.
+
+Once the build succeeds, start the production server locally to verify:
+
+```bash
+npm start
+```
+
+The app listens on port 3000 by default.
+
+---
+
+## Hosting options
+
+Quiero Aprender uses the **Next.js 14 App Router** with no required environment variables, so it deploys to any platform that supports Node.js.
+
+<Tabs>
+  <Tab title="Vercel">
+    Vercel is the recommended host for Next.js projects. Import the repository and Vercel auto-detects the framework:
+
+    1. Push your code to GitHub.
+    2. Create a new project on [vercel.com](https://vercel.com) and import the repository.
+    3. Leave the default build settings — Vercel detects Next.js automatically.
+    4. Click **Deploy**.
+
+    Vercel handles incremental static regeneration, edge caching, and automatic HTTPS.
+  </Tab>
+  <Tab title="Netlify">
+    Netlify supports Next.js App Router through its Next.js runtime plugin.
+
+    ```bash
+    # Install the Netlify CLI
+    npm install -g netlify-cli
+
+    # Build and deploy
+    npm run build
+    netlify deploy --prod
+    ```
+
+    Set the **publish directory** to `.next` and enable the Next.js runtime in your `netlify.toml` if needed.
+  </Tab>
+  <Tab title="Node.js server">
+    For any VPS or container environment:
+
+    ```bash
+    # On your server
+    npm install
+    npm run build
+    npm start
+    ```
+
+    Use a process manager like `pm2` to keep the server alive:
+
+    ```bash
+    npm install -g pm2
+    pm2 start "npm start" --name quiero-aprender
+    pm2 save
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Static assets
+
+All files in `public/` are served automatically at the root URL path. No additional configuration is required.
+
+<Warning>
+  3D model files (`.fbx`) and audio files must be placed in `public/` before running the build. The character gallery (`GaleriaPersonajes`) loads models from `/3d/personajes/` and the sound experiences load audio from `/aduios_semillas/` and images from `/semillas/`. If these files are missing, those experiences will fail to load in production.
+</Warning>
+
+Current static assets in `public/`:
+
+```
+public/
+  LOGO_PP.png         # Presupuesto Participativo logo
+  logo TDH.png        # Terre des Hommes logo
+  logoALCALDIA.png    # Alcaldía de Medellín logo
+```
+
+Any new experiences that require images, audio, or 3D models should follow the same convention — add the files to `public/` and reference them with a root-relative path (e.g., `/my-sound.mp3`).
+
+---
+
+## Environment variables
+
+No environment variables are required for a basic deployment. The app has `reactStrictMode: true` set in `next.config.mjs` and no external API keys.
+
+```mjs
+// next.config.mjs
+export default { reactStrictMode: true };
+```
+
+If you add features that require API keys (e.g., analytics, CMS), store them in a `.env.local` file during development and configure them as environment variables on your hosting platform. Never commit `.env.local` to version control.
+
+---
+
+## Related pages
+
+- [Development setup](/contributing/setup)
+- [Adding a new experience](/contributing/adding-experiences)

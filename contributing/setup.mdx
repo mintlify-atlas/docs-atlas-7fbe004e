@@ -1,0 +1,115 @@
+---
+title: "Development setup"
+description: "Set up your local development environment"
+---
+
+## Prerequisites
+
+Before you begin, make sure you have the following installed:
+
+- **Node.js 18 or later** — [nodejs.org](https://nodejs.org)
+- **npm** (bundled with Node.js)
+
+You can verify your versions with:
+
+```bash
+node -v
+npm -v
+```
+
+---
+
+## Clone and install
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/platohedro/Quiero-aprender.git
+    cd Quiero-aprender
+    ```
+  </Step>
+  <Step title="Install dependencies">
+    <CodeGroup>
+      ```bash npm
+      npm install
+      ```
+      ```bash yarn
+      yarn install
+      ```
+      ```bash pnpm
+      pnpm install
+      ```
+    </CodeGroup>
+  </Step>
+  <Step title="Start the development server">
+    ```bash
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) in your browser. The app uses Next.js Fast Refresh, so edits to components appear immediately without a full reload.
+  </Step>
+</Steps>
+
+---
+
+## Available scripts
+
+These scripts are defined in `package.json`:
+
+| Script | Command | Description |
+|---|---|---|
+| Development | `npm run dev` | Starts Next.js in development mode with hot reload |
+| Build | `npm run build` | Compiles the app for production |
+| Start | `npm start` | Runs the compiled production build |
+
+---
+
+## Tech stack
+
+<CardGroup cols={2}>
+  <Card title="Next.js 14" icon="code" href="https://nextjs.org">
+    App Router with React Server Components. All interactive experiences use `"use client"` components.
+  </Card>
+  <Card title="TypeScript 5" icon="file-code" href="https://www.typescriptlang.org">
+    Strict type checking across all components. TSConfig is in `tsconfig.json`.
+  </Card>
+  <Card title="Tailwind CSS 3" icon="palette" href="https://tailwindcss.com">
+    Utility-first CSS with custom utilities (`sticker-card`, `sticker-button`) defined in `globals.css`.
+  </Card>
+  <Card title="React Three Fiber" icon="cube" href="https://docs.pmnd.rs/react-three-fiber">
+    3D rendering for the character gallery (`GaleriaPersonajes`) and other 3D scenes, built on top of Three.js `^0.160.0`.
+  </Card>
+</CardGroup>
+
+---
+
+## Project structure
+
+```
+app/
+  layout.tsx          # Root layout, fonts, global styles
+  page.tsx            # Main single-page app with all sections
+  sesiones/           # Standalone session routes
+    mesa/page.tsx
+    semillas/page.tsx
+    ...
+components/
+  themes.tsx          # ThemedSection, TopNav, shared layout primitives
+  mesa/
+    AutoCuidadoBoard.tsx
+  slot/
+    Slot777Vertical.tsx
+  GaleriaPersonajes.tsx
+  Acuarela.tsx
+  SemillasSonoras.tsx
+  LavaLampLab.tsx
+public/
+  LOGO_PP.png
+  logo TDH.png
+  logoALCALDIA.png
+styles/
+  globals.css
+```
+
+<Note>
+  All 3D model files (`.fbx`) and audio files must be placed in `public/` so Next.js serves them as static assets. See [Deployment](/contributing/deployment) for details.
+</Note>

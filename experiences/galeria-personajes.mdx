@@ -1,0 +1,212 @@
+---
+title: "Character gallery"
+description: "3D gallery of fantastical characters built with React Three Fiber and FBX models"
+---
+
+The character gallery is an interactive 3D showcase where each fantastical character created by children is displayed on a virtual *atril* (lectern). You navigate through twelve characters one by one; each character stands on the atril inside a fully lit 3D scene you can orbit with a mouse drag or finger swipe. A sidebar card shows the character's name, description, and lore entries (*ficha*) alongside previous/next navigation buttons.
+
+The experience is available at `/sesiones/galeria`.
+
+<Note>
+  The gallery requires WebGL support in the browser. Most modern desktop and mobile browsers include WebGL, but it may be disabled in some corporate or low-power environments. If the canvas stays blank, check that hardware acceleration is enabled in your browser settings.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Standalone URL" icon="link">
+    `/sesiones/galeria` — dedicated route for the character gallery experience.
+  </Card>
+  <Card title="Components" icon="code">
+    `components/GaleriaPersonajes.tsx` — state and navigation shell.  
+    `components/galeria/AtrilScene.tsx` — R3F scene, lighting, and camera.
+  </Card>
+</CardGroup>
+
+## Technical implementation
+
+### React Three Fiber canvas
+
+`AtrilScene` renders a `<Canvas>` from `@react-three/fiber` with the following settings:
+
+```tsx
+<Canvas
+  shadows={{ type: PCFSoftShadowMap }}
+  camera={{ position: [0, 2.8, 6.2], fov: 28 }}
+  dpr={[1, 1.8]}
+  gl={{ alpha: true }}
+>
+```
+
+A transparent canvas (`alpha: true`) overlays a background image (`/3d/Fondo_Galeria.png`) set on the parent `<div>`, which keeps the skybox appearance without adding a Three.js scene background mesh.
+
+### FBX model loading
+
+All models are loaded with `useFBX` from `@react-three/drei`. `GaleriaPersonajes` pre-loads every model URL when the component mounts to eliminate per-character load delays:
+
+```tsx
+useEffect(() => {
+  const urls = [
+    "/3d/atril2.fbx",
+    "/3d/personajes/personaje_n1.fbx",
+    "/3d/personajes/personaje2.fbx",
+    // ... up to personaje12.fbx
+  ];
+  urls.forEach((u) => {
+    try { (useFBX as any).preload?.(u); } catch {}
+  });
+}, []);
+```
+
+`FBXModel` (inside `AtrilScene.tsx`) clones every loaded group, recenters it, and applies material corrections before rendering:
+
+- Sets `roughness ≥ 0.9` and `metalness ≤ 0.05` to flatten specular hotspots from imported materials.
+- Enables anisotropic filtering (up to 8×) and `SRGBColorSpace` on every texture.
+- Calls `computeVertexNormals()` to fix smoothing artifacts common in FBX exports.
+- Hides flat base plates on the atril model that would obscure the floor circle.
+
+### Automatic height fitting and bottom alignment
+
+Each character entry in `personajesEscena` specifies `fitHeight: 2`, which scales the model so its bounding-box height equals 2 scene units regardless of the raw FBX size. `alignBottom: true` is also set, making the model's lowest vertex sit exactly at the atril surface:
+
+```tsx
+{
+  model: "/3d/personajes/personaje_n1.fbx",
+  scale: 9,
+  fitHeight: 2,
+  rotation: [0, Math.PI * 0.05, 0],
+}
+```
+
+`finalScale` is computed as `scale × (fitHeight / boundingBox.height)`.
+
+### Camera framing with `CameraRig`
+
+`CameraRig` runs inside the R3F render loop and smoothly lerps the camera position and `OrbitControls` target every 16 ms. The desired distance is derived from the combined bounding height of the atril and the active character:
+
+```tsx
+const coverageDistance = ((safeHeight / 2) / Math.tan(fovRad / 2)) * margin;
+const distance = Math.max(4.2, coverageDistance);
+camera.position.lerp(desired.pos, 0.12);
+controls.current.target.lerp(desired.tgt, 0.12);
+```
+
+The camera FOV is pinned to 28° to reduce perspective distortion on tall characters.
+
+### OrbitControls
+
+`OrbitControls` from `@react-three/drei` is configured for a presentation-style interaction:
+
+```tsx
+<OrbitControls
+  enablePan={false}
+  enableDamping
+  dampingFactor={0.1}
+  minPolarAngle={Math.PI / 3.5}
+  maxPolarAngle={Math.PI / 1.85}
+  autoRotate
+  autoRotateSpeed={0.4}
+/>
+```
+
+Panning is disabled to keep the character centered. The polar angle limits prevent the camera from going below the floor or above the character's head. Auto-rotation at 0.4 °/frame slowly orbits the scene when idle.
+
+### Lighting rig
+
+The scene uses a layered lighting setup to provide even illumination with warm/cool contrast and soft shadows:
+
+| Light | Type | Purpose |
+| --- | --- | --- |
+| Ambient + hemisphere | `ambientLight`, `hemisphereLight` | Base fill; ground color `#1D1B29` tints shadows slightly dark |
+| Key light | `directionalLight` at `[5.5, 6.5, 4]`, intensity 3.2 | Main shadow-casting sun-like source |
+| Fill light | `directionalLight` at `[-4.5, 5.5, -3.8]`, rose tint | Counteracts hard shadows on the opposite side |
+| Rose spot | `spotLight` at `[-2.4, 4.6, 2.6]` | Warm side-fill |
+| Sky spot | `spotLight` at `[2.8, 4.5, 2.8]` | Cool side-fill |
+| White top spot | `spotLight` at `[0.8, 4.2, 3.2]`, intensity 4.1 | Overhead key for facial highlight |
+| Lime top spot | `spotLight` at `[0, 6.4, 1.4]` | Tracks focus target Y; accent rim |
+| Back fill | `spotLight` at `[0, 2.2, -4.8]` | Soft backlight to separate character from backdrop |
+
+All shadow-casting lights use 2048×2048 shadow maps with `PCFSoftShadowMap` for smooth penumbras.
+
+### `GalleryBackdrop` and `Environment`
+
+A `GalleryBackdrop` mesh group (floor discs, backdrop planes) provides a stage surface inside the canvas. `Environment preset="lobby"` from `@react-three/drei` adds an HDR image-based light for realistic material reflections. `ContactShadows` (opacity 0.38, blur 2.8) adds a soft projected shadow beneath the atril without requiring per-object shadow receivers.
+
+## Character data structure
+
+Each entry in `personajesEscena` follows the `PersonajeEscena` type:
+
+```typescript
+type PersonajeEscena = {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  model: string;                        // path under /public
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number;
+  fitHeight?: number;                   // target height in scene units
+  ficha?: { titulo: string; descripcion: string }[];
+};
+```
+
+The `ficha` array holds lore cards displayed in the sidebar. Each entry has a `titulo` (e.g. "Orígenes") and a `descripcion`.
+
+## Navigation
+
+`GaleriaPersonajes` keeps an `indiceActual` integer in state. The previous/next buttons wrap around using modular arithmetic:
+
+```tsx
+const handleSiguiente = () =>
+  setIndiceActual((prev) => (prev + 1) % personajesEscena.length);
+```
+
+Switching characters swaps the `model` prop passed to `AtrilScene`, which triggers a new `useFBX` lookup. Because all models are pre-loaded, the transition is near-instant.
+
+## How to add a new character
+
+<Steps>
+  <Step title="Export and place the FBX file">
+    Export your character model as an `.fbx` file from your 3D authoring tool. Place it in the `public/3d/personajes/` directory, for example `public/3d/personajes/personaje13.fbx`.
+  </Step>
+  <Step title="Add the model URL to the pre-load list">
+    Open `components/GaleriaPersonajes.tsx` and add the new path to the `urls` array inside the `useEffect`:
+
+    ```tsx
+    const urls = [
+      // existing entries …
+      "/3d/personajes/personaje13.fbx",
+    ];
+    ```
+  </Step>
+  <Step title="Register the character in personajesEscena">
+    Add an entry to the `personajesEscena` array returned by `useMemo`:
+
+    ```tsx
+    {
+      id: "personaje13",
+      nombre: "Mi Nuevo Personaje",
+      descripcion: "Breve descripción visible en la tarjeta lateral.",
+      model: "/3d/personajes/personaje13.fbx",
+      scale: 9,
+      fitHeight: 2,
+      rotation: [0, Math.PI * 0.03, 0],
+      ficha: [
+        { titulo: "Origen", descripcion: "Texto de la ficha de origen." },
+        { titulo: "Habilidad", descripcion: "Texto de la ficha de habilidad." },
+      ],
+    },
+    ```
+
+    `fitHeight: 2` auto-scales the model to 2 scene units tall. Adjust `rotation[1]` (Y-axis) in small increments of `Math.PI * 0.0x` to give the character a slight angle.
+  </Step>
+  <Step title="Verify in the browser">
+    Run `npm run dev` and navigate to `/sesiones/galeria`. Step through to the new character using the **Siguiente** button and confirm the model loads on the atril with correct framing.
+
+    <Tip>
+      If the model appears floating or sunk below the atril, check that `alignBottom: true` is set (it is applied automatically via `sceneConfig`). If scaling looks wrong, try adjusting `fitHeight` between `1.5` and `3`.
+    </Tip>
+  </Step>
+</Steps>
+
+## See also
+
+- [Architecture overview](/architecture/overview)

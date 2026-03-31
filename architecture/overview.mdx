@@ -1,0 +1,170 @@
+---
+title: "Architecture overview"
+description: How the Quiero Aprender project is structured — directories, routing, and page composition.
+---
+
+Quiero Aprender is a **Next.js 14** application using the App Router. The entire book is a single scrollable page composed of themed sections, each mapping to one creative experience. A sticky navigation bar lets users jump between sections or open any experience in its own standalone route.
+
+## Directory structure
+
+```
+app/
+├── layout.tsx
+├── page.tsx
+├── sesiones/
+│   ├── semillas/
+│   ├── galeria/
+│   ├── laboratorio/
+│   ├── mesa/
+│   ├── acuarela/
+│   └── slot/
+└── api/
+    └── semillas/
+        └── route.ts
+components/
+├── themes.tsx
+├── ui.tsx
+├── ScrollToTopButton.tsx
+├── SemillasSonoras.tsx
+├── Marimba.tsx
+├── GaleriaPersonajes.tsx
+├── LavaLampLab.tsx
+├── Acuarela.tsx
+├── galeria/
+├── lava/
+├── mesa/
+└── slot/
+styles/
+└── globals.css
+public/
+tailwind.config.ts
+next.config.mjs
+package.json
+tsconfig.json
+```
+
+## App Router setup
+
+The project uses the **Next.js 14 App Router** exclusively. There is no `pages/` directory.
+
+`app/layout.tsx` is the root layout. It loads the two Google Fonts — Space Grotesk and Inter — as CSS variables and applies them to the `<body>` element. The `lang` attribute is set to `"es"` to reflect the Spanish-language content.
+
+```tsx app/layout.tsx
+import { Space_Grotesk, Inter } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-heading",
+  weight: ["400", "500", "600", "700"],
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="es">
+      <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans`}>
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+`app/page.tsx` contains the entire book as a client component (`"use client"`). It manages the active section state and wires the `TopNav` and `ThemedSection` components together.
+
+## Single-page scroll architecture
+
+The book is a single long page. Every experience is rendered as a `<ThemedSection>` with a unique `id`. Navigation is handled in two ways:
+
+1. **Scroll-based detection** — an `IntersectionObserver` watches all section IDs and updates the active tab as the user scrolls.
+2. **Programmatic scroll** — clicking a nav item calls `scrollIntoView({ behavior: 'smooth' })` on the target section element.
+
+The current active section is reflected in the URL hash (`window.location.hash`) so that deep links work on load.
+
+```tsx app/page.tsx (simplified)
+export default function YoQuieroAprenderApp() {
+  const [tab, setTab] = useState('inicio');
+
+  // Sync hash on navigation
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.location.hash = tab;
+    }
+  }, [tab]);
+
+  // Observe sections while scrolling
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target.id) setTab(visible.target.id);
+      },
+      { threshold: [0.2, 0.4, 0.6], rootMargin: '-25% 0px -35% 0px' }
+    );
+    // ...observe each section id
+  }, []);
+
+  return (
+    <div className="min-h-screen">
+      <TopNav current={tab} onChange={handleSectionChange} />
+      <main>
+        <ThemedSection id="semillas" title="El cuidado de la semilla" eyebrow="Capítulo 01" ...>
+          <SemillasSonoras />
+        </ThemedSection>
+        {/* remaining chapters */}
+      </main>
+    </div>
+  );
+}
+```
+
+## Standalone session routes
+
+Each of the six experiences also exists at its own URL under `app/sesiones/`. This lets facilitators open a single activity in full-screen mode without the surrounding book navigation.
+
+| Route | Experience |
+|---|---|
+| `/sesiones/semillas` | Mi primera semilla sonora |
+| `/sesiones/galeria` | Galería de personajes |
+| `/sesiones/laboratorio` | Laboratorio de lava |
+| `/sesiones/mesa` | Juego de autocuidado |
+| `/sesiones/acuarela` | Pintura en acuarela |
+| `/sesiones/slot` | Animalario |
+
+The main page exposes an "Abrir solo" (`StandaloneButton`) link in each `ThemedSection` that navigates to the corresponding standalone route.
+
+```tsx
+const StandaloneButton = ({ id }: { id: string }) => (
+  <div className="mb-6 flex justify-end">
+    <Link href={`/sesiones/${id}`} className="sticker-button ...">
+      Abrir solo ↗
+    </Link>
+  </div>
+);
+```
+
+## API route
+
+`app/api/semillas/route.ts` is the only server-side API route. It serves data for the seed sounds experience (`SemillasSonoras`).
+
+## Key components
+
+`ThemedSection` and `TopNav` are the two structural components that compose the book layout. Both live in `components/themes.tsx` and carry the `"use client"` directive because they rely on scroll state and user interactions.
+
+<CardGroup cols={2}>
+  <Card title="Component architecture" icon="puzzle" href="/architecture/components">
+    Props reference for ThemedSection, TopNav, HighlightCard, and all experience components.
+  </Card>
+  <Card title="Design system & styling" icon="paintbrush" href="/architecture/styling">
+    CSS utilities, color tokens, typography, and Tailwind configuration.
+  </Card>
+</CardGroup>

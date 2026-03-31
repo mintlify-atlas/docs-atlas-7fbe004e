@@ -1,0 +1,193 @@
+---
+title: "Sound seeds (Semillas sonoras)"
+description: "An interactive audio gallery where children tap seed cards to hear unique musical textures, with per-seed volume control and seamless playback."
+---
+
+Sound seeds is an interactive audio gallery that lives inside Chapter 01 — "El cuidado de la semilla" (The Care of the Seed). Each seed is represented by a card showing a photo and a name. When a child taps a card, the browser plays a short audio loop associated with that seed. Only one seed plays at a time: tapping a new card immediately stops the previous one.
+
+<CardGroup cols={2}>
+  <Card title="Standalone URL" icon="link">
+    `/sesiones/semillas` — opens the full Chapter 01 page with both Sound Seeds and Marimba.
+  </Card>
+  <Card title="Component" icon="code">
+    `components/SemillasSonoras.tsx` — client component, zero external dependencies.
+  </Card>
+</CardGroup>
+
+## How it works
+
+### Loading the seed manifest
+
+On mount, `SemillasSonoras` calls `GET /api/semillas`. The API scans `public/semillas/` for PNG files, builds a `Semilla` record for each one, and returns the full list as JSON.
+
+```typescript
+type Semilla = {
+  id: string;       // filename without extension, e.g. "girasol"
+  nombre: string;   // human-readable name derived from id ("girasol" → "girasol")
+  img: string;      // "/semillas/girasol.png"
+  audioMp3?: string; // "/aduios_semillas/girasol.MP3"
+  audioM4a?: string; // "/aduios_semillas/girasol.m4a"
+};
+```
+
+The response shape is:
+
+```json
+{
+  "semillas": [
+    {
+      "id": "girasol",
+      "nombre": "girasol",
+      "img": "/semillas/girasol.png",
+      "audioMp3": "/aduios_semillas/girasol.MP3",
+      "audioM4a": "/aduios_semillas/girasol.m4a"
+    }
+  ]
+}
+```
+
+If the `public/semillas/` directory is missing or unreadable, the API returns `{ "semillas": [] }` with HTTP 200 rather than a 500 error, so the UI degrades gracefully to an empty grid.
+
+### Singleton audio element
+
+All seeds share a single `HTMLAudioElement` stored on `window.__globalSingleAudio`. This guarantees that at most one audio file plays at any moment — no overlap, no accumulation of background sounds — regardless of how many `SeedTile` components are mounted.
+
+```typescript
+// From useAudioController — simplified
+const w = window as any;
+if (!w.__globalSingleAudio) {
+  w.__globalSingleAudio = new Audio();
+  w.__globalSingleAudio.preload = "auto";
+  w.__globalSingleAudio.crossOrigin = "anonymous";
+}
+```
+
+### MP3 → M4A fallback
+
+When a seed is tapped, the `useAudioController` hook tries the MP3 source first. If the browser rejects it (e.g. on iOS Safari with certain codec restrictions), it falls back to the M4A file automatically. Each attempt is guarded by a `playToken` counter so that a fast second tap cannot race with the first.
+
+```typescript
+// Source priority order passed to toggle()
+const mp3 = s.audioMp3 || `/aduios_semillas/${s.id}.MP3`;
+const m4a = s.audioM4a || `/aduios_semillas/${s.id}.m4a`;
+toggle(s.id, [mp3, m4a]);
+```
+
+### Seed tile controls
+
+Each card exposes three controls:
+
+| Control | Element | Behavior |
+| --- | --- | --- |
+| Volume slider | `<input type="range" min=0 max=1 step=0.01>` | Adjusts `HTMLAudioElement.volume` on the singleton **only while that seed is playing**. |
+| Play/pause button | `<button>` | Toggles playback; shows a pause icon when active, play icon when stopped. |
+| Stop button | `<button>` | Pauses playback and resets `currentTime` to 0. |
+
+A pulsing ring animation (`ping-fast` keyframe) plays around the seed image whenever its audio is active.
+
+## API reference
+
+### `GET /api/semillas`
+
+Scans `public/semillas/` for `.png` files and derives audio paths from the filenames.
+
+**Response — 200 OK**
+
+```json
+{
+  "semillas": [
+    {
+      "id": "string",
+      "nombre": "string",
+      "img": "string",
+      "audioMp3": "string",
+      "audioM4a": "string"
+    }
+  ]
+}
+```
+
+**Error case** — if `public/semillas/` is unreadable the response is still HTTP 200:
+
+```json
+{
+  "semillas": [],
+  "error": "ENOENT: no such file or directory, scandir '...'"
+}
+```
+
+<Note>
+  Browsers block audio playback that is not triggered by a direct user gesture (a click, tap, or keypress). The seed grid does not auto-play on load — children must tap a card first. If you try to call `audio.play()` programmatically before any user interaction, the browser will reject the promise and the component will silently fall back to the next source or do nothing.
+</Note>
+
+## File layout
+
+Audio and image files for seeds live in `public/`:
+
+```
+public/
+├── semillas/
+│   ├── girasol.png
+│   ├── cacao.png
+│   └── ...
+└── aduios_semillas/
+    ├── girasol.MP3
+    ├── girasol.m4a
+    ├── cacao.MP3
+    ├── cacao.m4a
+    └── ...
+```
+
+<Tip>
+  The directory name `aduios_semillas` (note the transposition of "a" and "u") is intentional — it matches the production asset paths. Do not rename it without updating `SemillasSonoras.tsx` and `route.ts`.
+</Tip>
+
+## Adding a new seed
+
+<Steps>
+  <Step title="Add the seed image">
+    Place a square PNG in `public/semillas/`. The filename (without extension) becomes the seed's `id` and `nombre`. Use underscores for multi-word names, e.g. `semilla_de_maiz.png` → displayed as `semilla de maiz`.
+  </Step>
+  <Step title="Add audio files">
+    Add both formats to `public/aduios_semillas/` using the same base name and the expected extensions:
+
+    ```
+    public/aduios_semillas/semilla_de_maiz.MP3
+    public/aduios_semillas/semilla_de_maiz.m4a
+    ```
+
+    The M4A is the fallback for Safari; provide both to ensure cross-browser compatibility.
+  </Step>
+  <Step title="Verify the manifest">
+    Restart the dev server and open `/api/semillas` in the browser. Confirm your new seed appears in the `semillas` array.
+  </Step>
+  <Step title="Check in the UI">
+    Open `/sesiones/semillas` and tap the new card. You should hear the audio and see the pulsing ring animation.
+  </Step>
+</Steps>
+
+## Customizing the component
+
+<AccordionGroup>
+  <Accordion title="Changing the grid layout">
+    The seed grid uses Tailwind's responsive grid classes in `SemillasSonoras.tsx`:
+
+    ```typescript
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+    ```
+
+    Change `md:grid-cols-3` to `md:grid-cols-4` for a wider grid, or `sm:grid-cols-1` for a single-column layout on all screen sizes.
+  </Accordion>
+  <Accordion title="Customizing the card shadow color">
+    Each card uses the lavender brand token for its drop shadow: `shadow-[6px_6px_0_#C0AAF2]`. Replace `#C0AAF2` with any hex value to change the shadow color globally.
+  </Accordion>
+  <Accordion title="Using a custom nombre instead of the filename">
+    The API derives `nombre` from the PNG filename by replacing underscores with spaces. To use a richer display name (e.g. with accents or capitalization), extend the `route.ts` to read from a JSON manifest file instead:
+
+    ```typescript
+    // app/api/semillas/route.ts — custom manifest approach
+    import manifest from "@/data/semillas-manifest.json";
+    // merge PNG-derived ids with manifest names...
+    ```
+  </Accordion>
+</AccordionGroup>

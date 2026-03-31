@@ -1,0 +1,117 @@
+---
+title: "Lava lamp lab"
+description: "Interactive lava lamp simulation with guided steps — add ingredients, observe bubble physics, and experiment with color."
+---
+
+The Lava Lamp Lab (Laboratorio de lava) is a guided science experiment where children virtually build a lava lamp step by step. Following a recipe, you add water, oil, dye, and an effervescent tablet to a digital jar and watch colorful blobs rise and fall. The experience is designed to spark curiosity about density, immiscibility, and chemical reactions.
+
+Standalone URL: `/sesiones/laboratorio`
+
+## How it works
+
+The experience is driven by two components:
+
+- **`LavaLampLab`** (`components/LavaLampLab.tsx`) — the outer shell that manages the recipe workflow, ingredient state, and animated jar layers
+- **`LavaShaderPanel`** (`components/lava/LavaShaderPanel.tsx`) — the inner visual panel that renders the bubble/blob animation
+
+### Guided recipe
+
+The lab follows a four-step recipe defined in `RECIPE_STEPS`:
+
+| Step | Ingredient | Effect |
+|------|-----------|--------|
+| 1 | 💧 Water | Transparent liquid base |
+| 2 | 🛢️ Oil | Floating golden layer |
+| 3 | 🎨 Dye drops | Vibrant color disperses through water |
+| 4 | 💊 Effervescent tablet | Lava bubbles rise and fall |
+
+Each ingredient is tracked in state as `Ingredient`:
+
+```typescript
+type Ingredient = {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  added: boolean;
+};
+```
+
+### Layer rendering
+
+The jar is rendered using CSS z-layers (`Z_LEVELS`) that stack on top of each other:
+
+```typescript
+const Z_LEVELS = {
+  waterBase: 1,
+  waterTint: 2,
+  waterWaves: 3,
+  oilLayer: 4,
+  oilSeparator: 5,
+  oilTint: 6,
+  oilBubbles: 7,
+  dyeEffects: 8,
+  lavaOverlay: 9,
+  labels: 10,
+  indicators: 11,
+  dropping: 12,
+};
+```
+
+Lava blobs are animated using CSS keyframes. Five blob clusters are defined with varying sizes, positions, and durations to create organic movement:
+
+```typescript
+const LAVA_BLOB_CLUSTERS = [
+  { width: 52, height: 64, baseLeft: 20, baseBottom: 26, duration: 7.2, delay: 0 },
+  { width: 44, height: 56, baseLeft: 48, baseBottom: 18, duration: 6.4, delay: 0.8 },
+  { width: 58, height: 68, baseLeft: 68, baseBottom: 30, duration: 8.1, delay: 1.3 },
+  // ...
+];
+```
+
+### Dye animation
+
+When dye is added, animated drop and swirl elements appear:
+
+```typescript
+const DYE_DROPS = [
+  { left: '24%', top: '12px', delay: '0s' },
+  { left: '36%', top: '18px', delay: '0.2s' },
+  // ...
+];
+```
+
+## Using the experience
+
+<Steps>
+  <Step title="Start the recipe">
+    Click the first ingredient (💧 Water) to add it to the jar. The bottom layer fills with a transparent blue.
+  </Step>
+  <Step title="Add oil">
+    Click 🛢️ Oil. A golden floating layer appears on top of the water — this demonstrates that oil is less dense than water.
+  </Step>
+  <Step title="Add dye">
+    Click 🎨 Dye. Watch colored drops fall through the oil and disperse in the water below.
+  </Step>
+  <Step title="Add the effervescent tablet">
+    Click 💊 Tablet. The lava blobs begin rising and falling — the experiment is complete!
+  </Step>
+</Steps>
+
+<Note>
+  Each ingredient must be added in sequence. The next ingredient button activates only after the current one has been added.
+</Note>
+
+## Customizing the lab
+
+<AccordionGroup>
+  <Accordion title="Change blob colors">
+    Edit the `PALETTE` values imported from `components/palette.ts`. Each color maps to a visual layer in `LavaShaderPanel`.
+  </Accordion>
+  <Accordion title="Add more blob clusters">
+    Extend the `LAVA_BLOB_CLUSTERS` array in `LavaLampLab.tsx` with new entries. Each entry needs `width`, `height`, `baseLeft`, `baseBottom`, `duration`, and `delay`.
+  </Accordion>
+  <Accordion title="Change ingredient descriptions">
+    Edit the `RECIPE_STEPS` array. Each step has an `ingredient` id, a `description` (shown in the UI), and an `effect` (shown as feedback text).
+  </Accordion>
+</AccordionGroup>
